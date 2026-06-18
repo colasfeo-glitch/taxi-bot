@@ -16,9 +16,17 @@ const ID_INSTANCE = process.env.ID_INSTANCE;
 const API_TOKEN = process.env.API_TOKEN_INSTANCE;
 const LINK_RESENA = "https://share.google/Qb290PMlVTB4Torcn";
 
-// 🚨 PON AQUÍ TU ENLACE PROVISIONAL DE NETLIFY SIN LA BARRA AL FINAL
+// TU ENLACE PROVISIONAL DE NETLIFY
 const DOMINIO = "https://taxilapobladevallbona.netlify.app"; 
 
+// 🚨 PON AQUÍ LOS IDs DE TUS GRUPOS Y TU NÚMERO
+const GRUPO_1 = "120363137744193519@g.us"; // Pega el ID del Grupo 1 (La Pobla)
+const GRUPO_2 = "120363408769149181@g.us"; // Pega el ID del Grupo 2 (C. Valenciana)
+
+// TU NÚMERO PRIVADO COMO PARACAÍDAS (Sustituye 600000000 por tu móvil real)
+const GRUPO_3 = "34674102871@c.us";
+
+// Función enviar WhatsApp a un teléfono individual
 async function enviarWhatsApp(telefono, mensaje) {
     try {
         let telfLimpio = telefono.replace(/[^0-9]/g, '');
@@ -31,8 +39,19 @@ async function enviarWhatsApp(telefono, mensaje) {
     }
 }
 
+// Función enviar WhatsApp a GRUPOS
+async function enviarWhatsAppGrupo(chatId, mensaje) {
+    try {
+        const url = `https://api.green-api.com/waInstance${ID_INSTANCE}/sendMessage/${API_TOKEN}`;
+        await axios.post(url, { chatId: chatId, message: mensaje });
+        console.log(`📢 Alerta enviada al grupo ${chatId}`);
+    } catch (error) {
+        console.error(`❌ Error al enviar al grupo:`, error.message);
+    }
+}
+
 // =======================================================
-// 1. VIGILANTE DE VIAJES (Automáticos)
+// 1. VIGILANTE DE VIAJES (Automáticos al cliente)
 // =======================================================
 db.collection('reservations').onSnapshot(snapshot => {
     snapshot.docChanges().forEach(async (change) => {
@@ -104,27 +123,72 @@ db.collection('reservations').onSnapshot(snapshot => {
 });
 
 // =======================================================
-// 2. VIGILANTE DE CLIENTES (Para Botones VIP Automáticos)
+// 2. VIGILANTE DE CLIENTES (Botones VIP Automáticos)
 // =======================================================
 db.collection('clients').onSnapshot(snapshot => {
     snapshot.docChanges().forEach(async (change) => {
         if (change.type === 'modified') {
             const clientData = change.doc.data();
-            
             if (clientData.triggerReminder && clientData.triggerReminder !== clientData.lastReminderSent) {
                 await db.collection('clients').doc(change.doc.id).update({ lastReminderSent: clientData.triggerReminder });
-                
                 const nameF = clientData.name.split(' ')[0];
-                let msg = "";
-                
-                if (clientData.vipCode) {
-                    msg = `👑 *TAXI LA POBLA VIP*\n\nEstimado/a *${nameF}*,\n\nLe recordamos que es miembro exclusivo de nuestro Club VIP.\n\n🔐 Su código secreto es: *${clientData.vipCode}*\n\n💰 Puede revisar su saldo acumulado aquí:\n🔗 ${DOMINIO}/perfil-cliente.html\n\n¡Le esperamos pronto! 🚕✨`;
-                } else {
-                    msg = `🚕 *TAXI LA POBLA*\n\n👋 Estimado/a *${nameF}*,\n\nLe invitamos formalmente a nuestro *Club VIP*.\n\nAl reservar desde la web y marcar la casilla VIP obtendrá:\n💎 8% de reembolso en cada viaje.\n🧳 Prioridad en reservas.\n📱 Área Privada de saldo.\n\n¡Es 100% GRATIS! Únase en su próxima reserva:\n🔗 ${DOMINIO}/index.html`;
-                }
-                
+                let msg = clientData.vipCode
+                    ? `👑 *TAXI LA POBLA VIP*\n\nEstimado/a *${nameF}*,\n\nLe recordamos que es miembro exclusivo de nuestro Club VIP.\n\n🔐 Su código secreto es: *${clientData.vipCode}*\n\n💰 Puede revisar su saldo acumulado aquí:\n🔗 ${DOMINIO}/perfil-cliente.html\n\n¡Le esperamos pronto! 🚕✨`
+                    : `🚕 *TAXI LA POBLA*\n\n👋 Estimado/a *${nameF}*,\n\nLe invitamos formalmente a nuestro *Club VIP*.\n\nAl reservar desde la web y marcar la casilla VIP obtendrá:\n💎 8% de reembolso en cada viaje.\n🧳 Prioridad en reservas.\n📱 Área Privada de saldo.\n\n¡Es 100% GRATIS! Únase en su próxima reserva:\n🔗 ${DOMINIO}/index.html`;
                 if (clientData.phone) await enviarWhatsApp(clientData.phone, msg);
             }
         }
     });
 });
+
+// =======================================================
+// 3. CRONÓMETRO DE RED EXTERNA (CADA 60 SEGUNDOS)
+// =======================================================
+setInterval(async () => {
+    try {
+        const now = Date.now();
+        // Buscar todos los viajes que están Pendientes o Transferidos
+        const snapshot = await db.collection('reservations')
+            .where('status', 'in', ['Pendiente', 'Transferido'])
+            .get();
+
+        snapshot.forEach(async (docSnap) => {
+            const data = docSnap.data();
+            
+            // Solo actuar si está asignado a la Red de Compañeros o fue Transferido
+            if (data.driverId === 'Red de Compañeros' || data.status === 'Transferido') {
+                const elapsedMins = (now - data.timestamp) / 60000;
+                let level = data.escalationLevel || 0;
+
+                let acceptURL = `${DOMINIO}/aceptar-viaje.html?id=${docSnap.id}`;
+                let msg = `🚨 *NUEVO TRASLADO VIP* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n💶 *Precio Est.:* ${parseFloat(data.estimatedPrice||0).toFixed(2)}€\n\n✅ *Aceptar viaje aquí:* \n🔗 ${acceptURL}`;
+
+                // Minuto 15: Si nadie lo ha aceptado (Nivel 3 completado), cancelar
+                if (elapsedMins >= 15) {
+                    console.log(`❌ Cancelando viaje ${docSnap.id} por límite de tiempo.`);
+                    await db.collection('reservations').doc(docSnap.id).update({
+                        status: 'Cancelado',
+                        cancelReason: 'No se encontraron conductores disponibles en la red externa.'
+                    });
+                } 
+                // Minuto 10: Enviar al Grupo 3
+                else if (elapsedMins >= 10 && level < 3) {
+                    await enviarWhatsAppGrupo(GRUPO_3, msg);
+                    await db.collection('reservations').doc(docSnap.id).update({ escalationLevel: 3 });
+                }
+                // Minuto 5: Enviar al Grupo 2
+                else if (elapsedMins >= 5 && level < 2) {
+                    await enviarWhatsAppGrupo(GRUPO_2, msg);
+                    await db.collection('reservations').doc(docSnap.id).update({ escalationLevel: 2 });
+                }
+                // Minuto 0: Enviar al Grupo 1 (Nada más crearse)
+                else if (elapsedMins >= 0 && level < 1) {
+                    await enviarWhatsAppGrupo(GRUPO_1, msg);
+                    await db.collection('reservations').doc(docSnap.id).update({ escalationLevel: 1 });
+                }
+            }
+        });
+    } catch(e) {
+        console.log("Error en temporizador de Red Externa:", e.message);
+    }
+}, 60000); // Se ejecuta exactamente cada 60 segundos
