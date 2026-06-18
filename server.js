@@ -16,7 +16,7 @@ const ID_INSTANCE = process.env.ID_INSTANCE;
 const API_TOKEN = process.env.API_TOKEN_INSTANCE;
 const LINK_RESENA = "https://share.google/Qb290PMlVTB4Torcn";
 
-// 🚨 PON AQUÍ TU ENLACE PROVISIONAL DE NETLIFY SIN LA BARRA AL FINAL (ej: https://taxi-pobla.netlify.app)
+// 🚨 PON AQUÍ TU ENLACE PROVISIONAL DE NETLIFY SIN LA BARRA AL FINAL
 const DOMINIO = "https://taxilapobladevallbona.netlify.app"; 
 
 async function enviarWhatsApp(telefono, mensaje) {
@@ -32,7 +32,7 @@ async function enviarWhatsApp(telefono, mensaje) {
 }
 
 // =======================================================
-// 1. VIGILANTE DE VIAJES (Con protección anti-repetición)
+// 1. VIGILANTE DE VIAJES (Automáticos)
 // =======================================================
 db.collection('reservations').onSnapshot(snapshot => {
     snapshot.docChanges().forEach(async (change) => {
@@ -51,7 +51,7 @@ db.collection('reservations').onSnapshot(snapshot => {
 
         if (change.type === 'added' && data.status === 'Pendiente' && !data.notifiedPendiente) {
             await db.collection('reservations').doc(resId).update({ notifiedPendiente: true });
-            let msg = `🚕 *TAXI LA POBLA* | *Solicitud Recibida* 📩\n\nHola *${nameF}*, hemos recibido tu solicitud de traslado correctamente:\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe Est:* ${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n\n⏳ *Estado:* Buscando conductor en la red. En unos minutos te enviaremos la confirmación definitiva con los datos del taxi asignado. ¡Gracias!`;
+            let msg = `🚕 *TAXI LA POBLA* | *Nueva Solicitud* 📩\n\n👋 Hola *${nameF}*, hemos recibido tu petición de traslado:\n\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n💶 *Importe Est.:* ${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n\n⏳ *Estado:* 🔍 Buscando conductor...\n\nEn unos minutos te confirmaremos el vehículo asignado. ¡Gracias por elegirnos! ✨`;
             if (phone) await enviarWhatsApp(phone, msg);
         }
 
@@ -59,20 +59,20 @@ db.collection('reservations').onSnapshot(snapshot => {
             if (data.status === 'Confirmado' && !data.notifiedConfirmado && data.driverId && data.driverId !== "Red de Compañeros") {
                 await db.collection('reservations').doc(resId).update({ notifiedConfirmado: true });
                 let msg = isVipUser
-                    ? `🚕 *TAXI LA POBLA VIP* | *Reserva Confirmada* ✅\n\nEstimado/a *${nameF}*, su trayecto ha sido asignado y validado con éxito.\n\n🚗 *Vehículo Oficial:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha y Hora:* ${data.date} a las ${data.time}h\n\nSu vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
-                    : `🚕 *TAXI LA POBLA* | *Reserva Confirmada* ✅\n\nHola *${nameF}*, tu trayecto ha sido confirmado con éxito.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Fecha y Hora:* ${data.date} a las ${data.time}h\n\nEstaremos allí puntualmente. ¡Le deseamos un excelente viaje! 🤝`;
+                    ? `🚕 *TAXI LA POBLA VIP* | *¡Reserva Confirmada!* ✅\n\n🌟 Estimado/a *${nameF}*, su trayecto ha sido validado con éxito.\n\n🚗 *Vehículo:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n\n👔 Su vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
+                    : `🚕 *TAXI LA POBLA* | *¡Reserva Confirmada!* ✅\n\n👋 Hola *${nameF}*, tu trayecto ha sido confirmado.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n\n⏱️ Estaremos allí puntualmente. ¡Buen viaje! 🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'En Camino' && !data.notifiedEnCamino) {
                 await db.collection('reservations').doc(resId).update({ notifiedEnCamino: true });
                 let msg = isVipUser
-                    ? `🚕 *TAXI LA POBLA VIP* | *Vehículo en Camino* 📍\n\nEstimado/a *${nameF}*, su conductor oficial ha iniciado el trayecto hacia su punto de recogida.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ Siga la ubicación de su taxi en tiempo real a través de su Área Segura:\n🔗 ${trackURL}\n\n💎 *Recuerde:* Como miembro VIP, este viaje sumará saldo a su cartera. Su código secreto es: *${data.vipCode || 'Revisar en web'}*.\n\n¡Nos vemos en unos minutos! ✨`
-                    : `🚕 *TAXI LA POBLA* | *Vehículo en Camino* 📍\n\nHola *${nameF}*, tu conductor ha iniciado el trayecto hacia tu punto de recogida.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ Siga la ubicación exacta de tu taxi en tiempo real aquí:\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace para ver tu taxi, podrás crear tu perfil VIP totalmente gratis y empezar a acumular un 8% de reembolso en tus viajes.\n\n¡Nos vemos en unos minutos! 🤝`;
+                    ? `🚕 *TAXI LA POBLA VIP* | *¡Vehículo en Camino!* 📍\n\n🌟 Estimado/a *${nameF}*, su conductor oficial se dirige al punto de recogida.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💎 *Recuerde:* Este viaje sumará saldo a su cartera usando su código VIP: *${data.vipCode}*.\n\n¡Nos vemos en unos minutos! ⏱️✨`
+                    : `🚕 *TAXI LA POBLA* | *¡Vehículo en Camino!* 📍\n\n👋 Hola *${nameF}*, tu conductor se dirige a recogerte.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace, podrás crear tu perfil VIP GRATIS y acumular un 8% de saldo.\n\n¡Nos vemos pronto! ⏱️🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'Esperando' && !data.notifiedEsperando) {
                 await db.collection('reservations').doc(resId).update({ notifiedEsperando: true });
-                let msg = `🚕 *TAXI LA POBLA* | *Tu vehículo ha llegado* 🚨\n\nHola *${nameF}*, le informamos de que su conductor ya se encuentra esperándole en la puerta en el punto de recogida:\n\n📍 *Ubicación:* ${data.origin}\n\nPuede salir cuando esté listo. ¡Buen viaje! 🤝`;
+                let msg = `🚕 *TAXI LA POBLA* | *¡Tu taxi ha llegado!* 🚨\n\n👋 Hola *${nameF}*, te informamos de que el conductor ya está esperándote en la puerta:\n\n📍 *Ubicación:* ${data.origin}\n\n🚪 Puedes salir cuando estés listo/a. ¡Buen viaje! 🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'Finalizado' && !data.notifiedFinalizado) {
@@ -83,20 +83,20 @@ db.collection('reservations').onSnapshot(snapshot => {
 
                 if (isVipUser) {
                     if (data.paidWithWallet === true || data.paidWithWallet === 'true' || data.paidWithWallet > 0) {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado*\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito y ha sido *abonado íntegramente* con su saldo VIP.\n\n🧾 *Resumen:*\n- Coste del viaje: ${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n- Saldo VIP utilizado: -${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n\nSu satisfacción es nuestro mayor premio. ¿Nos dejaría una reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Gracias por su inmensa lealtad! 👑`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha sido *abonado íntegramente* con sus puntos.\n\n🧾 *Resumen:*\n🛣️ Coste oficial: ${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n🎁 Saldo VIP usado: -${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Gracias por su inmensa lealtad! 👑`;
                     } else if (earned > 0) {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado*\n\nEstimado/a *${nameF}*, gracias por viajar una vez más con nosotros.\n\n🧾 *Resumen:*\n- Total Abonado: ${billed}€\n- Cashback VIP generado (8%): *+${earned.toFixed(2)}€*\n\nPuede consultar su nuevo saldo acumulado entrando en su Área VIP:\n🔗 ${profileURL}\n\n¿Nos regala 5 estrellas en Google? Nos ayuda muchísimo:\n⭐ ${LINK_RESENA}\n\n¡Hasta el próximo viaje! ✨`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, gracias por viajar con nosotros.\n\n🧾 *Resumen:*\n💶 Abonado: ${billed}€\n💎 Cashback generado (8%): *+${earned.toFixed(2)}€*\n\n📱 Consulte su nuevo saldo aquí:\n🔗 ${profileURL}\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Hasta la próxima! ✨`;
                     } else {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado*\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito.\n\nHa sido un auténtico placer llevarle a su destino. ¿Nos ayudaría con una breve reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Siempre a su disposición! 🚕`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito.\n\nHa sido un auténtico placer llevarle a su destino. ¿Nos ayudaría con una breve reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Siempre a su disposición! 🚕`;
                     }
                 } else {
-                    msg = `🚕 *TAXI LA POBLA* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, gracias por confiar en nuestro servicio.\n\n💶 *Importe Abonado:* ${billed}€\n\n💡 *¿Sabías que...?* En tu Perfil de Cliente tienes un botón para **ASCENDER A VIP GRATIS**. ¡Solo tienes que presionarlo y acumularás un 8% de saldo a tu favor en cada trayecto!\n🔗 *Vaya a su Perfil aquí:* ${profileURL}\n\n¿Nos regala 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Le deseamos un gran día! 🌟`;
+                    msg = `🚕 *TAXI LA POBLA* | *Trayecto Finalizado* 🏁\n\n👋 Hola *${nameF}*, gracias por confiar en nosotros.\n\n💶 *Importe Abonado:* ${billed}€\n\n🎁 *¡Hazte VIP GRATIS!*\nEntra en tu perfil, pulsa "Ascender a VIP" y acumula un 8% de saldo en cada viaje.\n🔗 ${profileURL}\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Que tengas un gran día! 🌟`;
                 }
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'Cancelado' && !data.notifiedCancelado) {
                 await db.collection('reservations').doc(resId).update({ notifiedCancelado: true });
-                let msg = `❌ *TAXI LA POBLA* | *Aviso de Cancelación*\n\nEstimado/a *${nameF}*, le informamos de que su solicitud de reserva ha sido cancelada en nuestro sistema.\n\n${data.cancelReason ? `📝 *Motivo:* ${data.cancelReason}\n\n` : ''}Si se trataba de un error o desea modificar los datos, puede realizar una nueva solicitud de inmediato desde nuestra web oficial:\n🔗 ${indexURL}\n\nDisculpe las molestias.`;
+                let msg = `❌ *TAXI LA POBLA* | *Reserva Cancelada*\n\nEstimado/a *${nameF}*, le informamos de que su reserva ha sido cancelada.\n\n${data.cancelReason ? `📝 *Motivo:* ${data.cancelReason}\n\n` : ''}🔄 Si desea hacer una nueva solicitud, visite nuestra web:\n🔗 ${indexURL}\n\nDisculpe las molestias. 🙏`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
         }
@@ -104,7 +104,7 @@ db.collection('reservations').onSnapshot(snapshot => {
 });
 
 // =======================================================
-// 2. VIGILANTE DE CLIENTES (Para Botón Recordatorio VIP)
+// 2. VIGILANTE DE CLIENTES (Para Botones VIP Automáticos)
 // =======================================================
 db.collection('clients').onSnapshot(snapshot => {
     snapshot.docChanges().forEach(async (change) => {
@@ -118,9 +118,9 @@ db.collection('clients').onSnapshot(snapshot => {
                 let msg = "";
                 
                 if (clientData.vipCode) {
-                    msg = `*TAXI LA POBLA VIP*\n\nEstimado/a ${nameF},\n\nLe recordamos que usted es miembro exclusivo de nuestro Club VIP.\n\nSu código personal y privado es: *${clientData.vipCode}*\n\nPuede acceder a su Área Privada para revisar su saldo acumulado en el siguiente enlace:\n${DOMINIO}/perfil-cliente.html\n\nRecuerde que si desea realizar una reserva rápida sin iniciar sesión, puede introducir este código en la parte superior del formulario de reservas para asegurar sus beneficios.\n\nGracias por su lealtad.`;
+                    msg = `👑 *TAXI LA POBLA VIP*\n\nEstimado/a *${nameF}*,\n\nLe recordamos que es miembro exclusivo de nuestro Club VIP.\n\n🔐 Su código secreto es: *${clientData.vipCode}*\n\n💰 Puede revisar su saldo acumulado aquí:\n🔗 ${DOMINIO}/perfil-cliente.html\n\n¡Le esperamos pronto! 🚕✨`;
                 } else {
-                    msg = `*TAXI LA POBLA*\n\nEstimado/a ${nameF},\n\nLe invitamos a formar parte de nuestro exclusivo Club VIP en su próxima reserva.\n\nAl marcar la casilla 'Crear mi perfil Cliente VIP', obtendrá:\n\n- Un 8% de reembolso en todos sus viajes.\n- Prioridad en equipaje y traslados al aeropuerto.\n- Un Área Privada para gestionar su saldo.\n\nEs totalmente gratuito. ¡Le esperamos!\n\nAcceda a nuestra web:\n${DOMINIO}/index.html`;
+                    msg = `🚕 *TAXI LA POBLA*\n\n👋 Estimado/a *${nameF}*,\n\nLe invitamos formalmente a nuestro *Club VIP*.\n\nAl reservar desde la web y marcar la casilla VIP obtendrá:\n💎 8% de reembolso en cada viaje.\n🧳 Prioridad en reservas.\n📱 Área Privada de saldo.\n\n¡Es 100% GRATIS! Únase en su próxima reserva:\n🔗 ${DOMINIO}/index.html`;
                 }
                 
                 if (clientData.phone) await enviarWhatsApp(clientData.phone, msg);
