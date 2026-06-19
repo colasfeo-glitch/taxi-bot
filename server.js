@@ -68,13 +68,12 @@ db.collection('reservations').onSnapshot(snapshot => {
         let profileURL = `${DOMINIO}/perfil-cliente.html`;
         let indexURL = `${DOMINIO}/index.html`;
 
-        // 🚨 AQUÍ ESTÁ LA MAGIA: Lógica de puntos global para que afecte a todos los mensajes
+        // 🚨 LÓGICA DE PUNTOS PARA TODOS LOS MENSAJES
         let isPaidWithWallet = data.paidWithWallet === true || String(data.paidWithWallet) === 'true' || Number(data.paidWithWallet) > 0;
         let precioTexto = isPaidWithWallet ? "0.00€ (Pagado con Puntos VIP 🌟)" : `${parseFloat(data.estimatedPrice || 0).toFixed(2)}€`;
 
         if (change.type === 'added' && data.status === 'Pendiente' && !data.notifiedPendiente) {
             await db.collection('reservations').doc(resId).update({ notifiedPendiente: true });
-            // Se usa precioTexto en lugar del valor directo
             let msg = `🚕 *TAXI LA POBLA* | *Nueva Solicitud* 📩\n\n👋 Hola *${nameF}*, hemos recibido tu petición de traslado:\n\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n💶 *Importe Est.:* ${precioTexto}\n\n⏳ *Estado:* 🔍 Buscando conductor...\n\nEn unos minutos te confirmaremos el vehículo asignado. ¡Gracias por elegirnos! ✨`;
             if (phone) await enviarWhatsApp(phone, msg);
         }
@@ -109,11 +108,11 @@ db.collection('reservations').onSnapshot(snapshot => {
 
                 if (isVipUser) {
                     if (isPaidWithWallet) {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha sido *abonado íntegramente* con sus puntos.\n\n🧾 *Resumen:*\n🛣️ Coste oficial: ${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n🎁 Saldo VIP usado: -${parseFloat(data.estimatedPrice || 0).toFixed(2)}€\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Gracias por su inmensa lealtad! 👑`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito.\n\n💶 *Importe Abonado:* 0.00€ (Abonado con Puntos VIP)\n\nHa sido un auténtico placer llevarle a su destino. ¿Nos ayudaría con una breve reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Siempre a su disposición! 🚕`;
                     } else if (earned > 0) {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, gracias por viajar con nosotros.\n\n🧾 *Resumen:*\n💶 Abonado: ${billed}€\n💎 Cashback generado (8%): *+${earned.toFixed(2)}€*\n\n📱 Consulte su nuevo saldo aquí:\n🔗 ${profileURL}\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Hasta la próxima! ✨`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, gracias por viajar con nosotros.\n\n💶 *Importe Abonado:* ${billed}€\n💎 Cashback generado (8%): *+${earned.toFixed(2)}€*\n\n📱 Consulte su nuevo saldo aquí:\n🔗 ${profileURL}\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Hasta la próxima! ✨`;
                     } else {
-                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito.\n\nHa sido un auténtico placer llevarle a su destino. ¿Nos ayudaría con una breve reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Siempre a su disposición! 🚕`;
+                        msg = `🌟 *TAXI LA POBLA VIP* | *Trayecto Finalizado* 🏁\n\nEstimado/a *${nameF}*, su viaje ha concluido con éxito.\n\n💶 *Importe Abonado:* ${billed}€\n\nHa sido un auténtico placer llevarle a su destino. ¿Nos ayudaría con una breve reseña de 5 estrellas en Google?:\n⭐ ${LINK_RESENA}\n\n¡Siempre a su disposición! 🚕`;
                     }
                 } else {
                     msg = `🚕 *TAXI LA POBLA* | *Trayecto Finalizado* 🏁\n\n👋 Hola *${nameF}*, gracias por confiar en nosotros.\n\n💶 *Importe Abonado:* ${billed}€\n\n🎁 *¡Hazte VIP GRATIS!*\nEntra en tu perfil, pulsa "Ascender a VIP" y acumula un 8% de saldo en cada viaje.\n🔗 ${profileURL}\n\n⭐ ¿Nos regala 5 estrellas en Google?\n👉 ${LINK_RESENA}\n\n¡Que tengas un gran día! 🌟`;
@@ -123,7 +122,6 @@ db.collection('reservations').onSnapshot(snapshot => {
             else if (data.status === 'Cancelado' && !data.notifiedCancelado) {
                 await db.collection('reservations').doc(resId).update({ notifiedCancelado: true });
                 
-                // 🚨 NUEVA LÓGICA DE DEVOLUCIÓN DE PUNTOS EN CANCELACIÓN
                 let devolucionTexto = isPaidWithWallet ? "\n\n✅ *Como habías pagado con saldo VIP, tus puntos han sido devueltos íntegramente a tu monedero.*" : "";
 
                 let msg = `❌ *TAXI LA POBLA* | *Reserva Cancelada*\n\nEstimado/a *${nameF}*, le informamos de que su reserva ha sido cancelada.\n\n${data.cancelReason ? `📝 *Motivo:* ${data.cancelReason}\n\n` : ''}🔄 Si desea hacer una nueva solicitud, visite nuestra web:\n🔗 ${indexURL}${devolucionTexto}\n\nDisculpe las molestias. 🙏`;
@@ -203,4 +201,4 @@ setInterval(async () => {
     } catch(e) {
         console.log("Error en temporizador de Red Externa:", e.message);
     }
-}, 60000); // Se ejecuta exactamente cada 60 segundos
+}, 60000);
