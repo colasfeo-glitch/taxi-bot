@@ -161,7 +161,7 @@ setInterval(async () => {
                 let level = data.escalationLevel || 0;
 
                 let acceptURL = `${DOMINIO}/aceptar-viaje.html?id=${docSnap.id}`;
-                let msg = `🚨 *NUEVO TRASLADO VIP* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n💶 *Precio Est.:* ${parseFloat(data.estimatedPrice||0).toFixed(2)}€\n\n✅ *Aceptar viaje aquí:* \n🔗 ${acceptURL}`;
+                let msg = `🚨 *NUEVO TRASLADO VIP (EN RED)* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n\nℹ️ *Nota:* El importe estimado del trayecto y la adjudicación del mismo se gestionan directamente dentro de la plataforma.\n\n✅ *Ver precio y aceptar viaje aquí:* \n🔗 ${acceptURL}\n\n⚠️ *AVISO - FASE DE PRUEBAS:* Este es un viaje simulado para calibrar el nuevo sistema. Por favor, TODAVÍA NO ENTRÉIS al enlace. Os daremos luz verde por el grupo cuando los viajes sean reales.`;
 
                 // Minuto 15: Si nadie lo ha aceptado (Nivel 3 completado), cancelar
                 if (elapsedMins >= 15) {
