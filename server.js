@@ -82,17 +82,26 @@ db.collection('reservations').onSnapshot(snapshot => {
             if (data.status === 'Confirmado' && !data.notifiedConfirmado && data.driverId && data.driverId !== "Red de Compañeros") {
                 await db.collection('reservations').doc(resId).update({ notifiedConfirmado: true });
                 
+                // MAGIA: Determinamos si es el coche oficial o externo
+                let esOficial = data.driverId === "Eduardo G." || data.driverId === "admin";
+                let vehiculoTexto = esOficial ? "Toyota Corolla Touring" : "Vehículo Asignado";
+                let matriculaTexto = esOficial ? `\n🔢 *Matrícula:* 2647NDV` : "";
+                
                 let msg = isVipUser
-                    ? `🚕 *TAXI LA POBLA VIP* | *¡Reserva Confirmada!* ✅\n\n🌟 Estimado/a *${nameF}*, su trayecto ha sido validado con éxito.\n\n🚗 *Vehículo:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n👔 Su vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
-                    : `🚕 *TAXI LA POBLA* | *¡Reserva Confirmada!* ✅\n\n👋 Hola *${nameF}*, tu trayecto ha sido confirmado.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n⏱️ Estaremos allí puntualmente. ¡Buen viaje! 🤝`;
+                    ? `🚕 *TAXI LA POBLA VIP* | *¡Reserva Confirmada!* ✅\n\n🌟 Estimado/a *${nameF}*, su trayecto ha sido validado con éxito.\n\n🚗 *Vehículo:* ${vehiculoTexto}${matriculaTexto}\n👤 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n👔 Su vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
+                    : `🚕 *TAXI LA POBLA* | *¡Reserva Confirmada!* ✅\n\n👋 Hola *${nameF}*, tu trayecto ha sido confirmado.\n\n🚗 *Vehículo:* ${vehiculoTexto}${matriculaTexto}\n👤 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n⏱️ Estaremos allí puntualmente. ¡Buen viaje! 🤝`;
                 
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'En Camino' && !data.notifiedEnCamino) {
                 await db.collection('reservations').doc(resId).update({ notifiedEnCamino: true });
+                
+                let esOficial = data.driverId === "Eduardo G." || data.driverId === "admin";
+                let vehiculoTexto = esOficial ? "Toyota Corolla Touring (2647NDV)" : data.driverId.toUpperCase();
+
                 let msg = isVipUser
-                    ? `🚕 *TAXI LA POBLA VIP* | *¡Vehículo en Camino!* 📍\n\n🌟 Estimado/a *${nameF}*, su conductor oficial se dirige al punto de recogida.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💎 *Recuerde:* Este viaje sumará saldo a su cartera usando su código VIP: *${data.vipCode}*.\n\n¡Nos vemos en unos minutos! ⏱️✨`
-                    : `🚕 *TAXI LA POBLA* | *¡Vehículo en Camino!* 📍\n\n👋 Hola *${nameF}*, tu conductor se dirige a recogerte.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace, podrás crear tu perfil VIP GRATIS y acumular un 8% de saldo.\n\n¡Nos vemos pronto! ⏱️🤝`;
+                    ? `🚕 *TAXI LA POBLA VIP* | *¡Vehículo en Camino!* 📍\n\n🌟 Estimado/a *${nameF}*, su conductor oficial se dirige al punto de recogida.\n\n🚗 *Vehículo:* ${vehiculoTexto}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💎 *Recuerde:* Este viaje sumará saldo a su cartera usando su código VIP: *${data.vipCode}*.\n\n¡Nos vemos en unos minutos! ⏱️✨`
+                    : `🚕 *TAXI LA POBLA* | *¡Vehículo en Camino!* 📍\n\n👋 Hola *${nameF}*, tu conductor se dirige a recogerte.\n\n🚗 *Vehículo:* ${vehiculoTexto}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace, podrás crear tu perfil VIP GRATIS y acumular un 8% de saldo.\n\n¡Nos vemos pronto! ⏱️🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'Esperando' && !data.notifiedEsperando) {
