@@ -77,9 +77,15 @@ db.collection('reservations').onSnapshot(snapshot => {
         if (change.type === 'modified') {
             if (data.status === 'Confirmado' && !data.notifiedConfirmado && data.driverId && data.driverId !== "Red de Compañeros") {
                 await db.collection('reservations').doc(resId).update({ notifiedConfirmado: true });
+                
+                // 🚨 NUEVA LÓGICA DE PUNTOS
+                let isPaidWithWallet = data.paidWithWallet === true || data.paidWithWallet === 'true';
+                let precioTexto = isPaidWithWallet ? "0.00€ (Pagado con Puntos VIP 🌟)" : `${parseFloat(data.estimatedPrice || 0).toFixed(2)}€`;
+
                 let msg = isVipUser
-                    ? `🚕 *TAXI LA POBLA VIP* | *¡Reserva Confirmada!* ✅\n\n🌟 Estimado/a *${nameF}*, su trayecto ha sido validado con éxito.\n\n🚗 *Vehículo:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n\n👔 Su vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
-                    : `🚕 *TAXI LA POBLA* | *¡Reserva Confirmada!* ✅\n\n👋 Hola *${nameF}*, tu trayecto ha sido confirmado.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n\n⏱️ Estaremos allí puntualmente. ¡Buen viaje! 🤝`;
+                    ? `🚕 *TAXI LA POBLA VIP* | *¡Reserva Confirmada!* ✅\n\n🌟 Estimado/a *${nameF}*, su trayecto ha sido validado con éxito.\n\n🚗 *Vehículo:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n👔 Su vehículo estará esperándole con la máxima puntualidad. ¡Gracias por confiar en nuestro servicio premium! ✨`
+                    : `🚕 *TAXI LA POBLA* | *¡Reserva Confirmada!* ✅\n\n👋 Hola *${nameF}*, tu trayecto ha sido confirmado.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n📍 *Recogida:* ${data.origin}\n📅 *Cuándo:* ${data.date} a las ${data.time}h\n💶 *Importe a abonar:* ${precioTexto}\n\n⏱️ Estaremos allí puntualmente. ¡Buen viaje! 🤝`;
+                
                 if (phone) await enviarWhatsApp(phone, msg);
             }
             else if (data.status === 'En Camino' && !data.notifiedEnCamino) {
@@ -89,7 +95,7 @@ db.collection('reservations').onSnapshot(snapshot => {
                     : `🚕 *TAXI LA POBLA* | *¡Vehículo en Camino!* 📍\n\n👋 Hola *${nameF}*, tu conductor se dirige a recogerte.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace, podrás crear tu perfil VIP GRATIS y acumular un 8% de saldo.\n\n¡Nos vemos pronto! ⏱️🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
-            else if (data.status === 'Esperando' && !data.notifiedEsperando) {
+            else s === 'Esperando' && !data.notifiedEsperando) {
                 await db.collection('reservations').doc(resId).update({ notifiedEsperando: true });
                 let msg = `🚕 *TAXI LA POBLA* | *¡Tu taxi ha llegado!* 🚨\n\n👋 Hola *${nameF}*, te informamos de que el conductor ya está esperándote en la puerta:\n\n📍 *Ubicación:* ${data.origin}\n\n🚪 Puedes salir cuando estés listo/a. ¡Buen viaje! 🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
@@ -115,7 +121,13 @@ db.collection('reservations').onSnapshot(snapshot => {
             }
             else if (data.status === 'Cancelado' && !data.notifiedCancelado) {
                 await db.collection('reservations').doc(resId).update({ notifiedCancelado: true });
-                let msg = `❌ *TAXI LA POBLA* | *Reserva Cancelada*\n\nEstimado/a *${nameF}*, le informamos de que su reserva ha sido cancelada.\n\n${data.cancelReason ? `📝 *Motivo:* ${data.cancelReason}\n\n` : ''}🔄 Si desea hacer una nueva solicitud, visite nuestra web:\n🔗 ${indexURL}\n\nDisculpe las molestias. 🙏`;
+                
+                // 🚨 NUEVA LÓGICA DE DEVOLUCIÓN DE PUNTOS
+                let isPaidWithWallet = data.paidWithWallet === true || data.paidWithWallet === 'true';
+                let devolucionTexto = isPaidWithWallet ? "\n\n✅ *Como habías pagado con saldo VIP, tus puntos han sido devueltos íntegramente a tu monedero.*" : "";
+
+                let msg = `❌ *TAXI LA POBLA* | *Reserva Cancelada*\n\nEstimado/a *${nameF}*, le informamos de que su reserva ha sido cancelada.\n\n${data.cancelReason ? `📝 *Motivo:* ${data.cancelReason}\n\n` : ''}🔄 Si desea hacer una nueva solicitud, visite nuestra web:\n🔗 ${indexURL}${devolucionTexto}\n\nDisculpe las molestias. 🙏`;
+                
                 if (phone) await enviarWhatsApp(phone, msg);
             }
         }
