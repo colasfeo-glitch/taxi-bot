@@ -78,7 +78,7 @@ db.collection('reservations').onSnapshot(snapshot => {
             if (data.status === 'Confirmado' && !data.notifiedConfirmado && data.driverId && data.driverId !== "Red de Compañeros") {
                 await db.collection('reservations').doc(resId).update({ notifiedConfirmado: true });
                 
-                // 🚨 NUEVA LÓGICA DE PUNTOS
+                // 🚨 LÓGICA DE PUNTOS (Detecta si pagó con cartera)
                 let isPaidWithWallet = data.paidWithWallet === true || data.paidWithWallet === 'true';
                 let precioTexto = isPaidWithWallet ? "0.00€ (Pagado con Puntos VIP 🌟)" : `${parseFloat(data.estimatedPrice || 0).toFixed(2)}€`;
 
@@ -95,7 +95,7 @@ db.collection('reservations').onSnapshot(snapshot => {
                     : `🚕 *TAXI LA POBLA* | *¡Vehículo en Camino!* 📍\n\n👋 Hola *${nameF}*, tu conductor se dirige a recogerte.\n\n🚗 *Conductor:* ${data.driverId.toUpperCase()}\n\n🗺️ *Siga su taxi en tiempo real aquí:*\n🔗 ${trackURL}\n\n💡 *¿Sabías que...?* Si accedes al enlace, podrás crear tu perfil VIP GRATIS y acumular un 8% de saldo.\n\n¡Nos vemos pronto! ⏱️🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
             }
-            else s === 'Esperando' && !data.notifiedEsperando) {
+            else if (data.status === 'Esperando' && !data.notifiedEsperando) {
                 await db.collection('reservations').doc(resId).update({ notifiedEsperando: true });
                 let msg = `🚕 *TAXI LA POBLA* | *¡Tu taxi ha llegado!* 🚨\n\n👋 Hola *${nameF}*, te informamos de que el conductor ya está esperándote en la puerta:\n\n📍 *Ubicación:* ${data.origin}\n\n🚪 Puedes salir cuando estés listo/a. ¡Buen viaje! 🤝`;
                 if (phone) await enviarWhatsApp(phone, msg);
@@ -122,7 +122,7 @@ db.collection('reservations').onSnapshot(snapshot => {
             else if (data.status === 'Cancelado' && !data.notifiedCancelado) {
                 await db.collection('reservations').doc(resId).update({ notifiedCancelado: true });
                 
-                // 🚨 NUEVA LÓGICA DE DEVOLUCIÓN DE PUNTOS
+                // 🚨 LÓGICA DE DEVOLUCIÓN DE PUNTOS
                 let isPaidWithWallet = data.paidWithWallet === true || data.paidWithWallet === 'true';
                 let devolucionTexto = isPaidWithWallet ? "\n\n✅ *Como habías pagado con saldo VIP, tus puntos han sido devueltos íntegramente a tu monedero.*" : "";
 
@@ -173,7 +173,7 @@ setInterval(async () => {
                 let level = data.escalationLevel || 0;
 
                 let acceptURL = `${DOMINIO}/aceptar-viaje.html?id=${docSnap.id}`;
-                let msg = `🚨 *NUEVO TRASLADO VIP (EN RED)* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n\nℹ️ *Nota:* El importe estimado del trayecto y la adjudicación del mismo se gestionan directamente dentro de la plataforma.\n\n✅ *Ver precio y aceptar viaje aquí:* \n🔗 ${acceptURL}\n\n⚠️ *AVISO - FASE DE PRUEBAS:* Este es un viaje simulado para calibrar el nuevo sistema. Por favor, TODAVÍA NO ENTRÉIS al enlace. Os daremos luz verde por el grupo cuando los viajes sean reales.`;
+                let msg = `🚨 *NUEVO TRASLADO VIP (EN RED)* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n\nℹ️ *Nota:* El importe a cobrar y la adjudicación se muestran dentro del sistema.\n\n✅ *Ver precio y aceptar viaje aquí:* \n🔗 ${acceptURL}\n\n⚠️ *AVISO - FASE DE PRUEBAS:* Este es un viaje simulado. Por favor, TODAVÍA NO ENTRÉIS al enlace. Os daremos luz verde por el grupo cuando los viajes sean reales.`;
 
                 // Minuto 15: Si nadie lo ha aceptado (Nivel 3 completado), cancelar
                 if (elapsedMins >= 15) {
