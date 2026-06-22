@@ -50,6 +50,38 @@ async function enviarWhatsAppGrupo(chatId, mensaje) {
     }
 }
 
+// NUEVO: Función Defensiva de Privacidad (RGPD)
+async function enviarWhatsAppProtegido(phone, msg, contactMethod) {
+    if (!phone) return;
+    
+    // Si en el formulario de la web marcó que prefería correo, respetamos y no mandamos WhatsApp
+    if (contactMethod === 'email') {
+        console.log(`🔕 WhatsApp omitido: El cliente prefirió contacto por Email.`);
+        return; 
+    }
+
+    try {
+        // Consultamos la Base de Datos para ver las configuraciones de este cliente
+        const clientsRef = await db.collection('clients').where('phone', '==', phone).get();
+        if (!clientsRef.empty) {
+            const clientData = clientsRef.docs[0].data();
+            
+            // Si el cliente desmarcó la casilla en la app, cancelamos el envío
+            if (clientData.notifWa === false) {
+                console.log(`🔕 Privacidad RGPD: El cliente ${phone} tiene silenciadas las notificaciones de WhatsApp.`);
+                return; 
+            }
+        }
+        
+        // Si todo está en orden (quiere recibir avisos), lo enviamos
+        await enviarWhatsApp(phone, msg);
+    } catch(e) {
+        console.error("Error comprobando privacidad del cliente:", e.message);
+        // Si hay un micro-corte con Firebase, enviamos el mensaje por seguridad para que no pierda el taxi
+        await enviarWhatsApp(phone, msg);
+    }
+}
+
 // =======================================================
 // 1. VIGILANTE DE VIAJES (Automáticos al cliente)
 // =======================================================
