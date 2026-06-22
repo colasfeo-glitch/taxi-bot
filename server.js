@@ -161,7 +161,7 @@ db.collection('clients').onSnapshot(snapshot => {
 });
 
 // =======================================================
-// 3. CRONÓMETRO DE RED EXTERNA (CADA 60 SEGUNDOS)
+// 3. CRONÓMETRO DE RED EXTERNA (NUEVO: FASES DE 1.5 MINUTOS)
 // =======================================================
 setInterval(async () => {
     try {
@@ -182,21 +182,21 @@ setInterval(async () => {
                 let acceptURL = `${DOMINIO}/aceptar-viaje.html?id=${docSnap.id}`;
                 let msg = `🚨 *NUEVO TRASLADO VIP (EN RED)* 🚨\n\n📍 *Origen:* ${data.origin}\n🏁 *Destino:* ${data.destination}\n📅 *Fecha:* ${data.date} a las ${data.time}h\n\nℹ️ *Nota:* El importe estimado del trayecto y la adjudicación del mismo se gestionan directamente dentro de la plataforma.\n\n✅ *Ver precio y aceptar viaje aquí:* \n🔗 ${acceptURL}\n\n⚠️ *AVISO - FASE DE PRUEBAS:* Este es un viaje simulado para calibrar el nuevo sistema. Por favor, TODAVÍA NO ENTRÉIS al enlace. Os daremos luz verde por el grupo cuando los viajes sean reales.`;
 
-                // Minuto 15: Si nadie lo ha aceptado (Nivel 3 completado), cancelar
-                if (elapsedMins >= 15) {
+                // Minuto 4.5: Si nadie lo ha aceptado (Nivel 3 completado), cancelar
+                if (elapsedMins >= 4.5) {
                     console.log(`❌ Cancelando viaje ${docSnap.id} por límite de tiempo.`);
                     await db.collection('reservations').doc(docSnap.id).update({
                         status: 'Cancelado',
                         cancelReason: 'No se encontraron conductores disponibles en la red externa.'
                     });
                 } 
-                // Minuto 10: Enviar al Grupo 3
-                else if (elapsedMins >= 10 && level < 3) {
+                // Minuto 3.0: Enviar al Grupo 3
+                else if (elapsedMins >= 3.0 && level < 3) {
                     await enviarWhatsAppGrupo(GRUPO_3, msg);
                     await db.collection('reservations').doc(docSnap.id).update({ escalationLevel: 3 });
                 }
-                // Minuto 5: Enviar al Grupo 2
-                else if (elapsedMins >= 5 && level < 2) {
+                // Minuto 1.5: Enviar al Grupo 2
+                else if (elapsedMins >= 1.5 && level < 2) {
                     await enviarWhatsAppGrupo(GRUPO_2, msg);
                     await db.collection('reservations').doc(docSnap.id).update({ escalationLevel: 2 });
                 }
@@ -210,4 +210,4 @@ setInterval(async () => {
     } catch(e) {
         console.log("Error en temporizador de Red Externa:", e.message);
     }
-}, 60000);
+}, 30000); // 30 segundos (antes 60000) para que tenga margen de detectar la franja del 1.5 exactamente
