@@ -17,7 +17,7 @@ const API_TOKEN = process.env.API_TOKEN_INSTANCE;
 const LINK_RESENA = "https://share.google/Qb290PMlVTB4Torcn";
 
 // TU ENLACE PROVISIONAL DE NETLIFY
-const DOMINIO = "https://taxilapobladevallbona.netlify.app"; 
+const DOMINIO = "https://taxilapobladevallbona.com"; 
 
 // 🚨 PON AQUÍ LOS IDs DE TUS GRUPOS Y TU NÚMERO
 const GRUPO_1 = "120363137744193519@g.us"; // Pega el ID del Grupo 1 (La Pobla)
